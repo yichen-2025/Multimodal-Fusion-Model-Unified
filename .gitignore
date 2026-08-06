@@ -15,6 +15,8 @@ data_processing/*.csv
 data_processing/*.txt
 # 允许上传下采样后的子集文件
 !data_processing/*subset*.csv
+# data_processing/*.csv  # 已取消忽略，用于上传原始数据集
+# data_processing/*.txt  # 已取消忽略，用于上传数据集说明
 processed_dataset/
 split_data/
 
