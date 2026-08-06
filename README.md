@@ -6,24 +6,47 @@
 
 本项目实现了一个多模态融合模型，用于网络流量恶意检测。模型将网络流量数据转换为两种模态：
 
-1. **统计特征模态**：9维数值特征（如包长度均值、端口号等）
+1. **统计特征模态**：9维数值特征（如流持续时间、包数量、字节速率等）
 2. **文本描述模态**：768维BERT语义嵌入
 
 通过多模态融合技术，将两种模态的特征进行融合，实现更准确的流量分类。
 
+## 当前使用的数据集
+
+**IoT Network Intrusion Dataset**：包含83个特征列，标签为 `Normal`（正常流量）和 `Anomaly`（恶意流量）。
+
+### 选用的9个连续特征（统计特征模态）
+
+| 特征列名 | 含义 |
+|---------|------|
+| `Flow_Duration` | 流持续时间 |
+| `Tot_Fwd_Pkts` | 前向包数量 |
+| `Tot_Bwd_Pkts` | 反向包数量 |
+| `TotLen_Fwd_Pkts` | 前向包总长度 |
+| `TotLen_Bwd_Pkts` | 反向包总长度 |
+| `Flow_Byts/s` | 流字节速率 |
+| `Fwd_Pkt_Len_Mean` | 前向包平均长度 |
+| `Bwd_Pkt_Len_Mean` | 反向包平均长度 |
+| `Pkt_Len_Mean` | 包平均长度 |
+
+### 离散特征（文本描述模态）
+
+利用 `Protocol`、`Src_IP`、`Src_Port`、`Dst_IP`、`Dst_Port` 等离散字段生成中文文本描述。
+
 ## 目录结构
 
 ```
-多模态融合2/
+多模态融合3/
 ├── main.py                    # 主入口文件（推荐运行方式）
-├── data_cleaning.py           # 数据清洗脚本
-├── extract_subset.py          # 数据集子集提取脚本
-├── split_modality.py          # 模态分离与数据集划分脚本
-├── train.py                   # 模型训练脚本
-├── test_model.py              # 模型测试脚本
-├── test_project.py            # 项目测试套件
-├── download_bert.py           # BERT模型下载脚本
-├── download_qwen.py           # Qwen模型下载脚本
+├── scripts/                   # 脚本模块
+│   ├── data_cleaning.py       # 数据清洗脚本
+│   ├── extract_subset.py      # 数据集子集提取脚本
+│   ├── split_modality.py      # 模态分离与数据集划分脚本
+│   ├── train.py               # 模型训练脚本
+│   ├── test_model.py          # 模型测试脚本
+│   ├── test_project.py        # 项目测试套件
+│   ├── download_bert.py       # BERT模型下载脚本
+│   └── download_qwen.py       # Qwen模型下载脚本
 │
 ├── src/                       # 核心源码
 │   ├── data/
@@ -59,24 +82,24 @@ pip install torch transformers datasets scikit-learn pandas numpy pytest matplot
 ### 2. 下载预训练模型
 
 ```bash
-python download_bert.py
-python download_qwen.py
+python scripts/download_bert.py
+python scripts/download_qwen.py
 ```
 
 ### 3. 准备数据集
 
-将原始数据集（CSV格式）放入 `data_processing/` 目录，数据集需包含：
-- `Label` 列：值为 `BENIGN`（正常流量）或 `DDoS`（恶意流量）
-- 特征列：`Destination Port`, `Bwd Packet Length Mean`, `Avg Bwd Segment Size`, `Bwd Packet Length Max`, `Bwd Packet Length Std`, `URG Flag Count`, `Packet Length Mean`, `Average Packet Size`, `Packet Length Std`
+将原始数据集（CSV格式）放入 `data_processing/` 目录，默认数据集为 `IoT Network Intrusion Dataset.csv`，数据集需包含：
+- `Label` 列：值为 `Normal`（正常流量）或 `Anomaly`（恶意流量）
+- 9个连续特征列：`Flow_Duration`, `Tot_Fwd_Pkts`, `Tot_Bwd_Pkts`, `TotLen_Fwd_Pkts`, `TotLen_Bwd_Pkts`, `Flow_Byts/s`, `Fwd_Pkt_Len_Mean`, `Bwd_Pkt_Len_Mean`, `Pkt_Len_Mean`
 
 ### 4. 运行项目
 
 打开 `main.py`，按顺序取消注释执行各步骤：
 
 ```python
-# 步骤1：数据清洗
-from data_cleaning import main as run_data_cleaning
-run_data_cleaning()
+# 步骤1：数据清洗（可指定数据集文件名）
+from scripts.data_cleaning import main as run_data_cleaning
+run_data_cleaning(dataset_filename="IoT Network Intrusion Dataset.csv")
 
 # 步骤2：提取子集
 success, dataset_id = extract_subset(num_samples=5000, random_state=42)
@@ -102,17 +125,23 @@ plot_loss_curve(model_id=0)
 **操作**：取消 `main.py` 中步骤1的注释
 
 ```python
-from data_cleaning import main as run_data_cleaning
-run_data_cleaning()
+from scripts.data_cleaning import main as run_data_cleaning
+run_data_cleaning(dataset_filename="IoT Network Intrusion Dataset.csv")
 ```
 
 **运行**：`python main.py`
 
-**输入**：`data_processing/` 目录下的CSV文件
+**参数说明**：
+- `dataset_filename`（可选）：指定要处理的CSV文件名。不指定则使用 `data_processing/` 目录下的第一个CSV文件。
 
 **输出**：`processed_dataset/processed_dataset.csv`
 
-**处理内容**：缺失值处理、异常值检测、标签编码（BENIGN→0, DDoS→1）
+**处理内容**：缺失值处理、异常值检测、标签编码（Normal→0, Anomaly→1）
+
+**命令行直接运行**：
+```bash
+python scripts/data_cleaning.py --dataset "IoT Network Intrusion Dataset.csv"
+```
 
 ### 步骤2：提取数据集子集
 
@@ -224,6 +253,13 @@ plot_loss_curve(model_id=0)
 
 **效果**：弹出窗口显示训练loss变化曲线
 
+## GPU检查机制
+
+所有需要GPU的程序（`split_modality.py`、`train.py`、`test_model.py`）在执行前会自动检查GPU可用性：
+
+- **检测到GPU**：打印GPU型号和显存信息，程序正常继续
+- **未检测到GPU**：发出警告，要求用户确认是否继续使用CPU运行。若选择非y则终止程序
+
 ## 主键体系
 
 项目采用三级主键体系管理数据和模型：
@@ -244,8 +280,8 @@ plot_loss_curve(model_id=0)
 
 ### 数据格式
 
-- 原始数据集：CSV格式，包含`Label`列（值为`BENIGN`或`DDoS`）
-- 支持的特征列：`Destination Port`, `Bwd Packet Length Mean`, `Avg Bwd Segment Size`, `Bwd Packet Length Max`, `Bwd Packet Length Std`, `URG Flag Count`, `Packet Length Mean`, `Average Packet Size`, `Packet Length Std`
+- 原始数据集：CSV格式，包含`Label`列（值为`Normal`或`Anomaly`）
+- 支持的特征列：`Flow_Duration`, `Tot_Fwd_Pkts`, `Tot_Bwd_Pkts`, `TotLen_Fwd_Pkts`, `TotLen_Bwd_Pkts`, `Flow_Byts/s`, `Fwd_Pkt_Len_Mean`, `Bwd_Pkt_Len_Mean`, `Pkt_Len_Mean`
 
 ### 日志系统
 
@@ -263,9 +299,13 @@ plot_loss_curve(model_id=0)
 运行项目测试套件验证所有功能：
 
 ```bash
-python -m pytest test_project.py -v
+python -m pytest scripts/test_project.py -v
 ```
 
 ## 项目原理
 
 详细的项目原理说明请参考 `docs/theory.md`。
+
+## 数据集迁移说明
+
+从原始Friday-WorkingHours-Afternoon-DDos数据集迁移到IoT Network Intrusion Dataset的详细改动说明，请参考 `docs/IoT_Dataset_Migration.md`。

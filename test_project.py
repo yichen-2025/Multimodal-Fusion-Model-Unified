@@ -28,16 +28,16 @@ def test_clean_data():
     n_features = 79
     
     data = {
-        "Destination Port": np.random.randint(1, 65535, n_samples),
-        "Bwd Packet Length Mean": np.random.randn(n_samples) * 100 + 500,
-        "Avg Bwd Segment Size": np.random.randn(n_samples) * 50 + 200,
-        "Bwd Packet Length Max": np.random.randint(100, 2000, n_samples),
-        "Bwd Packet Length Std": np.random.randn(n_samples) * 50 + 30,
-        "URG Flag Count": np.random.randint(0, 5, n_samples),
-        "Packet Length Mean": np.random.randn(n_samples) * 100 + 400,
-        "Average Packet Size": np.random.randn(n_samples) * 80 + 350,
-        "Packet Length Std": np.random.randn(n_samples) * 60 + 40,
-        "Label": np.random.choice(['BENIGN', 'DDoS'], n_samples, p=[0.5, 0.5]),
+        "Flow_Duration": np.random.randint(1, 10000, n_samples).astype(float),
+        "Tot_Fwd_Pkts": np.random.randint(1, 500, n_samples).astype(float),
+        "Tot_Bwd_Pkts": np.random.randint(1, 500, n_samples).astype(float),
+        "TotLen_Fwd_Pkts": np.random.randn(n_samples) * 1000 + 5000,
+        "TotLen_Bwd_Pkts": np.random.randn(n_samples) * 1000 + 5000,
+        "Flow_Byts/s": np.random.randn(n_samples) * 1000 + 5000,
+        "Fwd_Pkt_Len_Mean": np.random.randn(n_samples) * 100 + 500,
+        "Bwd_Pkt_Len_Mean": np.random.randn(n_samples) * 100 + 500,
+        "Pkt_Len_Mean": np.random.randn(n_samples) * 100 + 400,
+        "Label": np.random.choice(['Normal', 'Anomaly'], n_samples, p=[0.5, 0.5]),
     }
     
     for i in range(n_features - 10):
@@ -54,9 +54,10 @@ def test_clean_data():
 @pytest.fixture(scope="module")
 def cleaned_data(test_clean_data):
     """执行数据清洗"""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     
-    from data_cleaning import clean_data as dc_clean_data
+    from scripts.data_cleaning import clean_data as dc_clean_data
     
     input_dir = test_clean_data
     output_dir = TEST_PROCESSED_DIR
@@ -67,7 +68,7 @@ def cleaned_data(test_clean_data):
     
     df_clean = dc_clean_data(df)
     
-    df_clean['Label'] = df_clean['Label'].map({'BENIGN': 0, 'DDoS': 1})
+    df_clean['Label'] = df_clean['Label'].map({'Normal': 0, 'Anomaly': 1})
     
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "processed_dataset.csv")
@@ -82,9 +83,10 @@ def cleaned_data(test_clean_data):
 @pytest.fixture(scope="module")
 def extracted_subset(cleaned_data):
     """提取数据集子集"""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     
-    from extract_subset import extract_subset
+    from scripts.extract_subset import extract_subset
     
     success, dataset_id = extract_subset(
         num_samples=1000,
@@ -113,9 +115,10 @@ def extracted_subset(cleaned_data):
 @pytest.fixture(scope="module")
 def split_data(extracted_subset):
     """划分训练集和测试集"""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     
-    from split_modality import split_modality
+    from scripts.split_modality import split_modality
     
     dataset_id = TEST_DATASET_ID
     split_modality(
@@ -138,9 +141,10 @@ def split_data(extracted_subset):
 @pytest.fixture(scope="module")
 def trained_model(split_data):
     """训练模型"""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     
-    from train import train_model
+    from scripts.train import train_model
     
     _, dataset_id, split_id = split_data
     
@@ -370,6 +374,7 @@ class TestEncoders:
     """测试编码器功能"""
     
     def test_numeric_encoder(self, split_data):
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         from src.model_architectures.numeric_encoder import NumericEncoder
@@ -386,6 +391,7 @@ class TestEncoders:
         assert output.shape == (10, 128), f"NumericEncoder输出形状不正确，期望(10, 128)，实际{output.shape}"
     
     def test_bert_encoder(self, split_data):
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         from src.model_architectures.bert_encoder import BertEncoder
@@ -465,6 +471,7 @@ class TestModelTesting:
     """测试模型测试功能"""
     
     def test_model_load(self, trained_model, split_data):
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         from src.model_architectures.multi_modal_model import MultiModalFusionModel
@@ -480,6 +487,7 @@ class TestModelTesting:
         assert model is not None, "模型加载失败"
     
     def test_model_inference(self, trained_model, split_data):
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         from src.model_architectures.multi_modal_model import MultiModalFusionModel

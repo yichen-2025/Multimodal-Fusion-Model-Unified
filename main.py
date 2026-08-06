@@ -15,10 +15,10 @@
 
 import os
 
-from extract_subset import extract_subset
-from split_modality import split_modality
-from train import train_model
-from test_model import test_model
+from scripts.extract_subset import extract_subset
+from scripts.split_modality import split_modality
+from scripts.train import train_model
+from scripts.test_model import test_model
 
 
 def create_necessary_directories():
@@ -102,8 +102,8 @@ def main():
     # 输入：data_processing/ 目录下的CSV文件
     # 输出：processed_dataset/processed_dataset.csv
     # ============================================
-    # from data_cleaning import main as run_data_cleaning
-    # run_data_cleaning()
+    # from scripts.data_cleaning import main as run_data_cleaning
+    # run_data_cleaning("IoT Network Intrusion Dataset_subset.csv")
     
     # ============================================
     # 步骤2：提取数据集子集
@@ -115,7 +115,7 @@ def main():
     #   random_state: 随机种子（默认42）
     # ============================================
     # success, dataset_id = extract_subset(
-    #     num_samples=5000,
+    #     num_samples=10000,
     #     # dataset_id=0,  # 可选：指定数据集ID
     #     random_state=42
     # )
@@ -163,7 +163,7 @@ def main():
     #         # model_id=0,  # 可选：指定模型ID
     #         dataset_id=0,
     #         split_id=0,
-    #         per_device_train_batch_size=2,
+    #         per_device_train_batch_size=4,
     #         gradient_accumulation_steps=4,
     #         learning_rate=1e-4,
     #         num_train_epochs=3
